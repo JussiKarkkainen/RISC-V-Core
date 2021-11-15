@@ -97,8 +97,6 @@ wire [4:0] rd = ram_i_data[11:7];
 reg new_pc = 1'b0;  // Set to 1 if pc is updated to new address in jump or branch
 reg load = 1'b0;    // If 1, load value in to memory later
 reg store = 1'b0;   // if 1, store value in to memory later
-//wire save_rs1 = rs1;
-//wire save_rs2 = rs2;
 reg reg_writeback = 1'b0;
 
 integer i;
@@ -205,7 +203,6 @@ always @(posedge clk)
         // Still need to implement instructions above
         // Apparently ecall/ebreak can be a single trap
         // Not sure about fence
-        // Best to do memory access and writeback before last instructions
 
     endcase
 
@@ -218,9 +215,6 @@ always @(posedge clk)
         ram_w_enable <= 1'b1;
         ram_d_addr <= alu_out;
       end
-
-// The above also writes to registers, check if this belongs to last step.
-// Also support for 16 and 8-bit load and stores
 
 // Register writeback
 
@@ -249,7 +243,15 @@ always @(posedge clk)
       end
     
     if (new_pc == 1'b1)
-      pc <= alu_out;
+      begin
+        if (opcode == 7'b1100011)
+          begin
+            if (cond_out == 1'b1)
+              pc <= alu_out;
+          end
+        else
+          pc <= alu_out;
+      end
   
   end
 
