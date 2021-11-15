@@ -3,7 +3,7 @@ module ram (
   input [31:0] i_addr,
   output reg [31:0] i_data,
   input [31:0] d_in,
-  input d_addr,
+  input [31:0] d_addr,
   output reg [31:0] d_out,
   input w_enable
   );

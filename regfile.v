@@ -26,11 +26,11 @@ always @(posedge clock)
 
 always @ (*)
   begin
-    if (read_a == 32'd0)
+    if (read_a == 5'd0)
       a <= 32'b0;
     else
       a <= regs[read_a];
-    if (read_b == 32'd0)
+    if (read_b == 5'd0)
       b <= 32'b0;
     else
       b <= regs[read_b];
