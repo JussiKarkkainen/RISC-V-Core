@@ -98,6 +98,8 @@ reg new_pc = 1'b0;  // Set to 1 if pc is updated to new address in jump or branc
 reg load = 1'b0;    // If 1, load value in to memory later
 reg store = 1'b0;   // if 1, store value in to memory later
 reg reg_writeback = 1'b0;
+reg [31:0] spc;
+
 
 integer i;
 always @(posedge clk)
@@ -112,7 +114,9 @@ always @(posedge clk)
             reg_data <= 32'b0;
           end
       end
-    
+   
+    ram_d_addr <= pc;
+
     ram_w_enable <= 1'b0;
     reg_w_enable <= 1'b0;
     cond_x <= rs1;
@@ -122,7 +126,7 @@ always @(posedge clk)
     alu_funct7 <= funct7;
     reg_read_a <= rs1;
     reg_read_b <= rs2;
-
+    spc <= pc;
 
 // Execute
 
@@ -138,14 +142,14 @@ always @(posedge clk)
       7'b0010111:                 // AUIPC
         begin
           alu_x <= imm_u;
-          alu_y <= pc;
+          alu_y <= spc;
           reg_writeback <= 1'b1;
         end
 
       7'b1101111:                 // JAL
         begin
           alu_x <= imm_j;
-          alu_y <= pc;
+          alu_y <= spc;
           new_pc <= 1'b1;
           reg_writeback <= 1'b1;
         end
@@ -160,7 +164,7 @@ always @(posedge clk)
       7'b1100011:                 // BRANCH
         begin
           alu_x <= imm_b;
-          alu_y <= pc;
+          alu_y <= spc;
           new_pc <= 1'b1;
           reg_writeback <= 1'b1;
         end
@@ -252,7 +256,8 @@ always @(posedge clk)
         else
           pc <= alu_out;
       end
-  
+    else
+      pc <= spc + 4;
   end
 
 endmodule
