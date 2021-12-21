@@ -200,7 +200,7 @@ always @(posedge clk)
       7'b0001111:                 // FENCE
         begin
         end
-      7'b1110011:                 // ECALL/EBREAK
+      7'b1110011:                 // ECALL/EBREAK/CSR
         begin
         end
 
