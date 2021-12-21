@@ -1,1 +1,1 @@
-Implementation of the RV21I Instruction set. Hopefully running on hardware soon.
+Implementation of the RV32I Instruction set. Hopefully running on hardware soon.
