@@ -2,6 +2,8 @@
 `include "regfile.v"
 `include "ram.v"
 `include "conditionals.v"
+`include "csrunit.v"
+`include "csr.v"
 
 module risc_core (
   input clk,
@@ -10,9 +12,8 @@ module risc_core (
   );
 
 
-
 regfile regfile (
-  .clock(clock),
+  .clock(clk),
   .read_a(reg_read_a),
   .read_b(reg_read_b),
   .write_idx(reg_write_idx),
@@ -29,7 +30,6 @@ reg [31:0] reg_data;
 reg reg_w_enable;
 wire [31:0] reg_a;
 wire [31:0] reg_b;
-
 
 
 alu alu (
@@ -62,7 +62,7 @@ wire cond_out;
 
 
 ram ram (
-  .clk(clock),
+  .clk(clk),
   .i_addr(ram_i_addr),
   .d_in(ram_d_in),
   .w_enable(ram_w_enable),
@@ -79,10 +79,28 @@ wire [31:0] ram_i_data;
 reg [31:0] ram_d_addr;
 
 
+csr csr (
+  .i_clk(clk),
+  .i_data(csr_data_i),
+  .funct3(csr_funct3),
+  .csr_addr(csr_addr),
+  .csr_w_enable(csr_we),
+  .csr_r_enable(csr_re),
+  .o_data(csr_data_o)
+  );
+
+reg [3:0] csr_funct3;
+reg [31:0] csr_data_i;
+reg [11:0] csr_addr;
+reg csr_we = 1'b0;
+reg csr_re = 1'b0;
+wire csr_data_o);
+
+
 // Instruction fetch from ram and decode
 
 wire [6:0] opcode = ram_i_data[6:0];
-wire [2:0] funct3 = ram_i_data[14:2];
+wire [3:0] funct3 = ram_i_data[14:2];
 wire [6:0] funct7 = ram_i_data[31:25];
 wire [4:0] rs1 = ram_i_data[19:15];
 wire [4:0] rs2 = ram_i_data[24:20];
@@ -91,7 +109,7 @@ wire imm_s = {{20{ram_i_data[31]}}, ram_i_data[31], ram_i_data[30:25], ram_i_dat
 wire imm_b = {{20{ram_i_data[31]}}, ram_i_data[31], ram_i_data[7], ram_i_data[30:25], ram_i_data[11:8], 1'b0};
 wire imm_u = {{12{ram_i_data[31]}}, ram_i_data[31], ram_i_data[30:20], ram_i_data[19:12], 12'b0};
 wire imm_j = {{12{ram_i_data[31]}}, ram_i_data[31], ram_i_data[19:12], ram_i_data[20], ram_i_data[30:25], ram_i_data[24:21], 1'b0};
-
+wire csr_address = ram_i_data[31:20];
 wire [4:0] rd = ram_i_data[11:7];
 
 reg new_pc = 1'b0;  // Set to 1 if pc is updated to new address in jump or branch
@@ -162,6 +180,7 @@ always @(posedge clk)
           reg_writeback <= 1'b1;
         end
       7'b1100011:                 // BRANCH
+
         begin
           alu_x <= imm_b;
           alu_y <= spc;
@@ -192,21 +211,26 @@ always @(posedge clk)
           reg_writeback <= 1'b1;
         end
       7'b0110011:                 // INT REG-REG
+
         begin
           alu_x <= reg_a;
           alu_y <= reg_b;
           reg_writeback <= 1'b1;
         end
+
       7'b0001111:                 // FENCE
         begin
         end
+
       7'b1110011:                 // ECALL/EBREAK/CSR
         begin
+          csr_i_data <= reg_read_a;
+          csr_funct3 <= funct3;
+          csr_we <= 1'b1;
+          csr_wr <= 1'b1;
+          csr_addr <= csr_address;
         end
 
-        // Still need to implement instructions above
-        // Apparently ecall/ebreak can be a single trap
-        // Not sure about fence
 
     endcase
 
@@ -221,30 +245,34 @@ always @(posedge clk)
       end
 
 // Register writeback
-
     if (reg_writeback == 1'b1)
       begin
         reg_w_enable <= 1'b1;
         reg_write_idx <= rd;
-        case (funct3)
-          000:
-            reg_data <= {{24{ram_d_out[8]}}, ram_d_out[7:0]}; // Load sign extended 8 bits 
-          
-          001:
-            reg_data <= {{16{ram_d_out[16]}}, ram_d_out[15:0]}; // Load sign extended 16 bits
+        if (opcode == 7'b0000011) begin
+          case (funct3)
+            000:
+              reg_data <= {{24{ram_d_out[8]}}, ram_d_out[7:0]}; // Load sign extended 8 bits 
+            
+            001:
+              reg_data <= {{16{ram_d_out[16]}}, ram_d_out[15:0]}; // Load sign extended 16 bits
 
-          010:
-            reg_data <= ram_d_out; // Load 32 bits
+            010:
+              reg_data <= ram_d_out; // Load 32 bits
 
-          100:
-            reg_data <= {24'b0, ram_d_out[7:0]}; // Load zero extended 8 bits
+            100:
+              reg_data <= {24'b0, ram_d_out[7:0]}; // Load zero extended 8 bits
 
-          101:
-            reg_data <= {16'b0, ram_d_out[15:0]}; // Load zero extended 16 bits.
-        
-        endcase
-
+            101:
+              reg_data <= {16'b0, ram_d_out[15:0]}; // Load zero extended 16 bits
+          endcase
+        end
+        else if (opcode == 7'b1110011)
+          reg_data <= csr_data_o;
+        else
+          reg_data <= alu_out)    
       end
+
     
     if (new_pc == 1'b1)
       begin
