@@ -2,7 +2,6 @@
 `include "regfile.v"
 `include "ram.v"
 `include "conditionals.v"
-`include "csrunit.v"
 `include "csr.v"
 
 module risc_core (
@@ -212,7 +211,6 @@ always @(posedge clk)
             reg_writeback <= 1'b1;
           end
         7'b0110011:                 // INT REG-REG
-
           begin
             alu_x <= reg_a;
             alu_y <= reg_b;
@@ -225,11 +223,15 @@ always @(posedge clk)
 
         7'b1110011:                 // ECALL/EBREAK/CSR
           begin
-            csr_i_data <= reg_read_a;
-            csr_funct3 <= funct3;
-            csr_we <= 1'b1;
             csr_wr <= 1'b1;
+            csr_we <= 1'b1;
+            csr_funct3 <= funct3;
             csr_addr <= csr_address;
+            if (funct3 == 3'b101 or 3'b110 or 3'b111)
+              csr_i_data <= rs1i;
+            else
+              csr_i_data <= reg_read_a;
+
           end
 
       endcase
