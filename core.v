@@ -132,161 +132,161 @@ always @(posedge clk)
             reg_data <= 32'b0;
           end
       end
-   
-    ram_d_addr <= pc;
+    else begin
 
-    ram_w_enable <= 1'b0;
-    reg_w_enable <= 1'b0;
-    cond_x <= rs1;
-    cond_y <= rs2;
-    cond_funct3 <= funct3;
-    alu_funct3 <= funct3;
-    alu_funct7 <= funct7;
-    reg_read_a <= rs1;
-    reg_read_b <= rs2;
-    spc <= pc;
+      ram_d_addr <= pc;
 
-// Execute
+      ram_w_enable <= 1'b0;
+      reg_w_enable <= 1'b0;
+      cond_x <= rs1;
+      cond_y <= rs2;
+      cond_funct3 <= funct3;
+      alu_funct3 <= funct3;
+      alu_funct7 <= funct7;
+      reg_read_a <= rs1;
+      reg_read_b <= rs2;
+      spc <= pc;
 
-    case (opcode)
-                  
-      7'b0110111:                 // LUI 
-        begin   
-          alu_x <= imm_u;
-          alu_y <= 32'b0;
-          reg_writeback <= 1'b1;
-        end
+  // Execute
 
-      7'b0010111:                 // AUIPC
-        begin
-          alu_x <= imm_u;
-          alu_y <= spc;
-          reg_writeback <= 1'b1;
-        end
-
-      7'b1101111:                 // JAL
-        begin
-          alu_x <= imm_j;
-          alu_y <= spc;
-          new_pc <= 1'b1;
-          reg_writeback <= 1'b1;
-        end
-
-      7'b1100111:                 // JALR
-        begin
-          alu_x <= imm_i;
-          alu_y <= rs1;
-          new_pc <= 1'b1;
-          reg_writeback <= 1'b1;
-        end
-      7'b1100011:                 // BRANCH
-
-        begin
-          alu_x <= imm_b;
-          alu_y <= spc;
-          new_pc <= 1'b1;
-          reg_writeback <= 1'b1;
-        end
-          // alu_x & y compute new_pc, jump only if cond is true.
-
-      7'b0000011:                 // LOAD
-        begin
-          alu_x <= imm_i;
-          alu_y <= rs1;
-          load <= 1'b1;
-          reg_writeback <= 1'b1;
-        end
-
-      7'b0100011:                 // STORE
-        begin
-          alu_x <= imm_s;
-          alu_y <= rs1;
-          store <= 1'b1;
-        end
-
-      7'b0010011:                 // INT REG-IMM
-        begin
-          alu_x <= imm_i;
-          alu_y <= rs1;
-          reg_writeback <= 1'b1;
-        end
-      7'b0110011:                 // INT REG-REG
-
-        begin
-          alu_x <= reg_a;
-          alu_y <= reg_b;
-          reg_writeback <= 1'b1;
-        end
-
-      7'b0001111:                 // FENCE
-        begin
-        end
-
-      7'b1110011:                 // ECALL/EBREAK/CSR
-        begin
-          csr_i_data <= reg_read_a;
-          csr_funct3 <= funct3;
-          csr_we <= 1'b1;
-          csr_wr <= 1'b1;
-          csr_addr <= csr_address;
-        end
-
-
-    endcase
-
-// Memory Access
-    if (load == 1'b1)
-      ram_d_addr <= alu_out;
-
-    if (store == 1'b1)
-      begin
-        ram_w_enable <= 1'b1;
-        ram_d_addr <= alu_out;
-      end
-
-// Register writeback
-    if (reg_writeback == 1'b1)
-      begin
-        reg_w_enable <= 1'b1;
-        reg_write_idx <= rd;
-        if (opcode == 7'b0000011) begin
-          case (funct3)
-            000:
-              reg_data <= {{24{ram_d_out[8]}}, ram_d_out[7:0]}; // Load sign extended 8 bits 
-            
-            001:
-              reg_data <= {{16{ram_d_out[16]}}, ram_d_out[15:0]}; // Load sign extended 16 bits
-
-            010:
-              reg_data <= ram_d_out; // Load 32 bits
-
-            100:
-              reg_data <= {24'b0, ram_d_out[7:0]}; // Load zero extended 8 bits
-
-            101:
-              reg_data <= {16'b0, ram_d_out[15:0]}; // Load zero extended 16 bits
-          endcase
-        end
-        else if (opcode == 7'b1110011)
-          reg_data <= csr_data_o;
-        else
-          reg_data <= alu_out)    
-      end
-
-    
-    if (new_pc == 1'b1)
-      begin
-        if (opcode == 7'b1100011)
-          begin
-            if (cond_out == 1'b1)
-              pc <= alu_out;
+      case (opcode)
+                    
+        7'b0110111:                 // LUI 
+          begin   
+            alu_x <= imm_u;
+            alu_y <= 32'b0;
+            reg_writeback <= 1'b1;
           end
-        else
-          pc <= alu_out;
-      end
-    else
-      pc <= spc + 4;
-  end
 
+        7'b0010111:                 // AUIPC
+          begin
+            alu_x <= imm_u;
+            alu_y <= spc;
+            reg_writeback <= 1'b1;
+          end
+
+        7'b1101111:                 // JAL
+          begin
+            alu_x <= imm_j;
+            alu_y <= spc;
+            new_pc <= 1'b1;
+            reg_writeback <= 1'b1;
+          end
+
+        7'b1100111:                 // JALR
+          begin
+            alu_x <= imm_i;
+            alu_y <= rs1;
+            new_pc <= 1'b1;
+            reg_writeback <= 1'b1;
+          end
+        7'b1100011:                 // BRANCH
+
+          begin
+            alu_x <= imm_b;
+            alu_y <= spc;
+            new_pc <= 1'b1;
+            reg_writeback <= 1'b1;
+          end
+            // alu_x & y compute new_pc, jump only if cond is true.
+
+        7'b0000011:                 // LOAD
+          begin
+            alu_x <= imm_i;
+            alu_y <= rs1;
+            load <= 1'b1;
+            reg_writeback <= 1'b1;
+          end
+
+        7'b0100011:                 // STORE
+          begin
+            alu_x <= imm_s;
+            alu_y <= rs1;
+            store <= 1'b1;
+          end
+
+        7'b0010011:                 // INT REG-IMM
+          begin
+            alu_x <= imm_i;
+            alu_y <= rs1;
+            reg_writeback <= 1'b1;
+          end
+        7'b0110011:                 // INT REG-REG
+
+          begin
+            alu_x <= reg_a;
+            alu_y <= reg_b;
+            reg_writeback <= 1'b1;
+          end
+
+        7'b0001111:                 // FENCE
+          begin
+          end
+
+        7'b1110011:                 // ECALL/EBREAK/CSR
+          begin
+            csr_i_data <= reg_read_a;
+            csr_funct3 <= funct3;
+            csr_we <= 1'b1;
+            csr_wr <= 1'b1;
+            csr_addr <= csr_address;
+          end
+
+      endcase
+
+  // Memory Access
+      if (load == 1'b1)
+        ram_d_addr <= alu_out;
+
+      if (store == 1'b1)
+        begin
+          ram_w_enable <= 1'b1;
+          ram_d_addr <= alu_out;
+        end
+
+  // Register writeback
+      if (reg_writeback == 1'b1)
+        begin
+          reg_w_enable <= 1'b1;
+          reg_write_idx <= rd;
+          if (opcode == 7'b0000011) begin
+            case (funct3)
+              000:
+                reg_data <= {{24{ram_d_out[8]}}, ram_d_out[7:0]}; // Load sign extended 8 bits 
+              
+              001:
+                reg_data <= {{16{ram_d_out[16]}}, ram_d_out[15:0]}; // Load sign extended 16 bits
+
+              010:
+                reg_data <= ram_d_out; // Load 32 bits
+
+              100:
+                reg_data <= {24'b0, ram_d_out[7:0]}; // Load zero extended 8 bits
+
+              101:
+                reg_data <= {16'b0, ram_d_out[15:0]}; // Load zero extended 16 bits
+            endcase
+          end
+          else if (opcode == 7'b1110011)
+            reg_data <= csr_data_o;
+          else
+            reg_data <= alu_out)    
+        end
+
+      
+      if (new_pc == 1'b1)
+        begin
+          if (opcode == 7'b1100011)
+            begin
+              if (cond_out == 1'b1)
+                pc <= alu_out;
+            end
+          else
+            pc <= alu_out;
+        end
+      else
+        pc <= spc + 4;
+      end
+    end
 endmodule
 
