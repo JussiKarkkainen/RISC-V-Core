@@ -11,6 +11,14 @@ module risc_core (
   );
 
 
+reg [4:0] reg_read_a;
+reg [4:0] reg_read_b;
+reg [4:0] reg_write_idx;
+reg [31:0] reg_data;
+reg reg_w_enable;
+wire [31:0] reg_a;
+wire [31:0] reg_b;
+
 regfile regfile (
   .clock(clk),
   .read_a(reg_read_a),
@@ -22,14 +30,13 @@ regfile regfile (
   .b(reg_b)
   );
 
-reg [4:0] reg_read_a;
-reg [4:0] reg_read_b;
-reg [4:0] reg_write_idx;
-reg [31:0] reg_data;
-reg reg_w_enable;
-wire [31:0] reg_a;
-wire [31:0] reg_b;
 
+reg [3:0] alu_funct3;
+reg [6:0] alu_funct7;
+reg [31:0] alu_x;
+reg [31:0] alu_y;
+wire [31:0] alu_out;
+wire alu_zero;
 
 alu alu (
   .x(alu_x),
@@ -40,12 +47,11 @@ alu alu (
   .zero(alu_zero)
   );
 
-reg [3:0] alu_funct3;
-reg [6:0] alu_funct7;
-reg [31:0] alu_x;
-reg [31:0] alu_y;
-wire [31:0] alu_out;
-wire alu_zero;
+
+reg [31:0] cond_x;
+reg [31:0] cond_y;
+reg [2:0] cond_funct3;
+wire cond_out;
 
 conditionals cond (
   .x(cond_x),
@@ -54,11 +60,13 @@ conditionals cond (
   .out(cond_out)
   );
 
-reg [31:0] cond_x;
-reg [31:0] cond_y;
-reg [2:0] cond_funct3;
-wire cond_out;
 
+reg [31:0] ram_i_addr;
+reg [31:0] ram_d_in;
+reg ram_w_enable;
+wire [31:0] ram_d_out;
+wire [31:0] ram_i_data;
+reg [31:0] ram_d_addr;
 
 ram ram (
   .clk(clk),
@@ -70,30 +78,23 @@ ram ram (
   .d_addr(ram_d_addr)
   );
 
-reg [31:0] ram_i_addr;
-reg [31:0] ram_d_in;
-reg ram_w_enable;
-wire [31:0] ram_d_out;
-wire [31:0] ram_i_data;
-reg [31:0] ram_d_addr;
-
-
-csr csr (
-  .i_clk(clk),
-  .i_data(csr_data_i),
-  .funct3(csr_funct3),
-  .csr_addr(csr_addr),
-  .csr_w_enable(csr_we),
-  .csr_r_enable(csr_re),
-  .o_data(csr_data_o)
-  );
 
 reg [3:0] csr_funct3;
 reg [31:0] csr_data_i;
 reg [11:0] csr_addr;
 reg csr_we = 1'b0;
 reg csr_re = 1'b0;
-wire csr_data_o);
+wire [31:0] csr_data_o;
+
+csr csr (
+  .i_clk(clk),
+  .i_data(csr_data_i),
+  .funct3(csr_funct3),
+  .csr_addr(csr_addr),
+  .csr_we(csr_we),
+  .csr_re(csr_re),
+  .o_data(csr_data_o)
+  );
 
 
 // Instruction fetch from ram and decode
@@ -110,6 +111,8 @@ wire imm_u = {{12{ram_i_data[31]}}, ram_i_data[31], ram_i_data[30:20], ram_i_dat
 wire imm_j = {{12{ram_i_data[31]}}, ram_i_data[31], ram_i_data[19:12], ram_i_data[20], ram_i_data[30:25], ram_i_data[24:21], 1'b0};
 wire csr_address = ram_i_data[31:20];
 wire [4:0] rd = ram_i_data[11:7];
+wire [31:0] csr_imm_rs1 = {27'b0, ram_i_data[19:5]};
+
 
 reg new_pc = 1'b0;  // Set to 1 if pc is updated to new address in jump or branch
 reg load = 1'b0;    // If 1, load value in to memory later
@@ -223,14 +226,14 @@ always @(posedge clk)
 
         7'b1110011:                 // ECALL/EBREAK/CSR
           begin
-            csr_wr <= 1'b1;
+            csr_we <= 1'b1;
             csr_we <= 1'b1;
             csr_funct3 <= funct3;
             csr_addr <= csr_address;
-            if (funct3 == 3'b101 or 3'b110 or 3'b111)
-              csr_i_data <= rs1i;
+            if (funct3 == 3'b101 || 3'b110 || 3'b111)
+              csr_data_i <= csr_imm_rs1;
             else
-              csr_i_data <= reg_read_a;
+              csr_data_i <= reg_read_a;
 
           end
 
@@ -272,7 +275,7 @@ always @(posedge clk)
           else if (opcode == 7'b1110011)
             reg_data <= csr_data_o;
           else
-            reg_data <= alu_out)    
+            reg_data <= alu_out;    
         end
 
       
@@ -290,5 +293,6 @@ always @(posedge clk)
         pc <= spc + 4;
       end
     end
+
 endmodule
 

@@ -1,7 +1,7 @@
 module csr (
   input i_clk,
   input i_rst,
-  input [32:0] i_data,
+  input [31:0] i_data,
   input [3:0] funct3, 
   input [11:0] csr_addr,
   input csr_we,
