@@ -227,14 +227,14 @@ always @(posedge clk)
         7'b1110011:                 // ECALL/EBREAK/CSR
           begin
             csr_we <= 1'b1;
-            csr_we <= 1'b1;
+            csr_re <= 1'b1;
             csr_funct3 <= funct3;
             csr_addr <= csr_address;
+
             if (funct3 == 3'b101 || 3'b110 || 3'b111)
               csr_data_i <= csr_imm_rs1;
             else
               csr_data_i <= reg_read_a;
-
           end
 
       endcase
@@ -254,31 +254,38 @@ always @(posedge clk)
         begin
           reg_w_enable <= 1'b1;
           reg_write_idx <= rd;
-          if (opcode == 7'b0000011) begin
-            case (funct3)
-              000:
-                reg_data <= {{24{ram_d_out[8]}}, ram_d_out[7:0]}; // Load sign extended 8 bits 
-              
-              001:
-                reg_data <= {{16{ram_d_out[16]}}, ram_d_out[15:0]}; // Load sign extended 16 bits
+          if (opcode == 7'b0000011) 
+            begin
+              case (funct3)
+                000:
+                  reg_data <= {{24{ram_d_out[8]}}, ram_d_out[7:0]}; // Load sign extended 8 bits 
+                
+                001:
+                  reg_data <= {{16{ram_d_out[16]}}, ram_d_out[15:0]}; // Load sign extended 16 bits
 
-              010:
-                reg_data <= ram_d_out; // Load 32 bits
+                010:
+                  reg_data <= ram_d_out; // Load 32 bits
 
-              100:
-                reg_data <= {24'b0, ram_d_out[7:0]}; // Load zero extended 8 bits
+                100:
+                  reg_data <= {24'b0, ram_d_out[7:0]}; // Load zero extended 8 bits
 
-              101:
-                reg_data <= {16'b0, ram_d_out[15:0]}; // Load zero extended 16 bits
-            endcase
-          end
+                101:
+                  reg_data <= {16'b0, ram_d_out[15:0]}; // Load zero extended 16 bits
+              endcase
+            end
           else if (opcode == 7'b1110011)
             reg_data <= csr_data_o;
           else
-            reg_data <= alu_out;    
+            reg_data <= alu_out;  
         end
+    
+      if (new_pc == 1'b1)
+        pc <= alu_out;
+      else
+        pc <= spc + 4;
 
-      
+    end
+/*
       if (new_pc == 1'b1)
         begin
           if (opcode == 7'b1100011)
@@ -291,8 +298,7 @@ always @(posedge clk)
         end
       else
         pc <= spc + 4;
-      end
     end
-
+*/
 endmodule
 
