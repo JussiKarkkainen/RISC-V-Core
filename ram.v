@@ -21,7 +21,7 @@ reg [31:0] mem[0:4095];
 always @ *
   begin
     i_data <= mem[i_addr];
-    d_data <= mem[d_addr];
+    d_out_data <= mem[d_addr];
   end
 
 // write to memory

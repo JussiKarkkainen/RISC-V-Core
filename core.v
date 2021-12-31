@@ -67,14 +67,13 @@ reg ram_w_enable;
 reg ram_r_enable;
 reg [31:0] ram_d_addr;
 wire [31:0] ram_d_out;
-wire [31:0] ram_i_data_out;
+wire [31:0] ram_i_data;
 
 ram ram (
   .clk(clk),
-  .r_enable(ram_r_enable),
   .w_enable(ram_w_enable),
   .i_addr(ram_i_addr),
-  .i_data(ram_i_data_out),
+  .i_data(ram_i_data),
   .d_in(ram_d_in),
   .d_out_data(ram_d_out),
   .d_addr(ram_d_addr)
