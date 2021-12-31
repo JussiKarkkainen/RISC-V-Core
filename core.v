@@ -4,7 +4,7 @@
 `include "conditionals.v"
 `include "csr.v"
 
-module risc_core (
+module core (
   input clk,
   input reset_n,
   output reg [31:0] pc
@@ -64,17 +64,19 @@ conditionals cond (
 reg [31:0] ram_i_addr;
 reg [31:0] ram_d_in;
 reg ram_w_enable;
-wire [31:0] ram_d_out;
-wire [31:0] ram_i_data;
+reg ram_r_enable;
 reg [31:0] ram_d_addr;
+wire [31:0] ram_d_out;
+wire [31:0] ram_i_data_out;
 
 ram ram (
   .clk(clk),
-  .i_addr(ram_i_addr),
-  .d_in(ram_d_in),
+  .r_enable(ram_r_enable),
   .w_enable(ram_w_enable),
-  .d_out(ram_d_out),
-  .i_data(ram_i_data),
+  .i_addr(ram_i_addr),
+  .i_data(ram_i_data_out),
+  .d_in(ram_d_in),
+  .d_out_data(ram_d_out),
   .d_addr(ram_d_addr)
   );
 
@@ -126,7 +128,7 @@ always @(posedge clk)
   begin
     if (reset_n)
       begin
-        pc <= 32'h800000;
+        pc <= 32'h80000000;       // Programs start at 0x80000000 
         reg_w_enable <= 1'b1;
         for (i=0; i<32; i=i+1)
           begin
@@ -136,7 +138,7 @@ always @(posedge clk)
       end
     else begin
 
-      ram_d_addr <= pc;
+      ram_i_addr <= pc;
 
       ram_w_enable <= 1'b0;
       reg_w_enable <= 1'b0;
@@ -278,13 +280,15 @@ always @(posedge clk)
           else
             reg_data <= alu_out;  
         end
-    
+
+  // Update pc    
       if (new_pc == 1'b1)
         pc <= alu_out;
       else
         pc <= spc + 4;
 
     end
+  end
 /*
       if (new_pc == 1'b1)
         begin
@@ -300,5 +304,6 @@ always @(posedge clk)
         pc <= spc + 4;
     end
 */
+  
 endmodule
 
