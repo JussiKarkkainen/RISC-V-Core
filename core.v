@@ -6,10 +6,9 @@
 
 module core (
   input clk,
-  input reset_n,
-  output reg [31:0] pc
+  input reset_n
   );
-
+reg [32:0] pc;
 
 reg [4:0] reg_read_a;
 reg [4:0] reg_read_b;
@@ -31,7 +30,7 @@ regfile regfile (
   );
 
 
-reg [3:0] alu_funct3;
+reg [2:0] alu_funct3;
 reg [6:0] alu_funct7;
 reg [31:0] alu_x;
 reg [31:0] alu_y;
@@ -98,19 +97,19 @@ csr csr (
   );
 
 
-// Instruction fetch from ram and decode
+// Instruction decode
 
 wire [6:0] opcode = ram_i_data[6:0];
-wire [3:0] funct3 = ram_i_data[14:2];
+wire [2:0] funct3 = ram_i_data[14:12];
 wire [6:0] funct7 = ram_i_data[31:25];
 wire [4:0] rs1 = ram_i_data[19:15];
 wire [4:0] rs2 = ram_i_data[24:20];
-wire imm_i = {{20{ram_i_data[31]}}, ram_i_data[31], ram_i_data[30:25], ram_i_data[24:21], ram_i_data[20]};
-wire imm_s = {{20{ram_i_data[31]}}, ram_i_data[31], ram_i_data[30:25], ram_i_data[11:8], ram_i_data[7]};
-wire imm_b = {{20{ram_i_data[31]}}, ram_i_data[31], ram_i_data[7], ram_i_data[30:25], ram_i_data[11:8], 1'b0};
-wire imm_u = {{12{ram_i_data[31]}}, ram_i_data[31], ram_i_data[30:20], ram_i_data[19:12], 12'b0};
-wire imm_j = {{12{ram_i_data[31]}}, ram_i_data[31], ram_i_data[19:12], ram_i_data[20], ram_i_data[30:25], ram_i_data[24:21], 1'b0};
-wire csr_address = ram_i_data[31:20];
+wire [31:0] imm_i = {{20{ram_i_data[31]}}, ram_i_data[31], ram_i_data[30:25], ram_i_data[24:21], ram_i_data[20]};
+wire [31:0] imm_s = {{20{ram_i_data[31]}}, ram_i_data[31], ram_i_data[30:25], ram_i_data[11:8], ram_i_data[7]};
+wire [31:0] imm_b = {{20{ram_i_data[31]}}, ram_i_data[31], ram_i_data[7], ram_i_data[30:25], ram_i_data[11:8], 1'b0};
+wire [31:0] imm_u = {{12{ram_i_data[31]}}, ram_i_data[31], ram_i_data[30:20], ram_i_data[19:12], 12'b0};
+wire [31:0] imm_j = {{12{ram_i_data[31]}}, ram_i_data[31], ram_i_data[19:12], ram_i_data[20], ram_i_data[30:25], ram_i_data[24:21], 1'b0};
+wire [6:0] csr_address = ram_i_data[31:20];
 wire [4:0] rd = ram_i_data[11:7];
 wire [31:0] csr_imm_rs1 = {27'b0, ram_i_data[19:5]};
 
@@ -125,9 +124,9 @@ reg [31:0] spc;
 integer i;
 always @(posedge clk)
   begin
-    if (reset_n)
+    if (reset_n == 1'b1)
       begin
-        pc <= 32'h80000000;       // Programs start at 0x80000000 
+        pc <= 32'h00000000;       
         reg_w_enable <= 1'b1;
         for (i=0; i<32; i=i+1)
           begin
@@ -136,7 +135,7 @@ always @(posedge clk)
           end
       end
     else begin
-
+      pc <= 0;
       ram_i_addr <= pc;
 
       ram_w_enable <= 1'b0;
@@ -251,7 +250,12 @@ always @(posedge clk)
         end
 
   // Register writeback
-      if (reg_writeback == 1'b1)
+  // Update pc    
+      if (new_pc == 1'b1)
+        pc <= alu_out;
+      else
+        pc <= spc + 4;
+      if (reg_writeback == 1'b1 && rd != 5'b00000)
         begin
           reg_w_enable <= 1'b1;
           reg_write_idx <= rd;
@@ -279,30 +283,16 @@ always @(posedge clk)
           else
             reg_data <= alu_out;  
         end
-
-  // Update pc    
-      if (new_pc == 1'b1)
-        pc <= alu_out;
       else
-        pc <= spc + 4;
+        begin
+          reg_w_enable <= 1'b1;
+          reg_write_idx <= rd;
+          reg_data <= (new_pc ? alu_out : (spc + 4));
+        end
+
 
     end
   end
-/*
-      if (new_pc == 1'b1)
-        begin
-          if (opcode == 7'b1100011)
-            begin
-              if (cond_out == 1'b1)
-                pc <= alu_out;
-            end
-          else
-            pc <= alu_out;
-        end
-      else
-        pc <= spc + 4;
-    end
-*/
   
 endmodule
 
