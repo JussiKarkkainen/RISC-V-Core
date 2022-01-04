@@ -1,10 +1,10 @@
 module alu
-  (input [31:0] x,
+  (
+  input [31:0] x,
   input [31:0] y,
-  input [3:0] funct3,
+  input [2:0] funct3,
   input [6:0] funct7,
-  output reg [31:0] out,
-  output reg zero
+  output reg [31:0] out
   );
 
 
@@ -55,9 +55,6 @@ always @ (*)
 
       3'b111:               //  AND
         out <= x && y;
-
-      default:
-        zero <= 1'b0;
 
     endcase
   end
