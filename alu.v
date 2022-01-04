@@ -21,7 +21,7 @@ always @ (*)
         end
 
       3'b001:               //  SLL
-        out <= x << y;      
+        out <= x << y[4:0];      
       
       3'b010:               //  SLT
         begin
@@ -45,16 +45,16 @@ always @ (*)
       3'b101:               //  SRL/SRA
         begin
           if (funct7 == 7'b0)
-            out <= x >> y;
+            out <= x >> y[4:0];
           else
-            out <= x >>> y;
+            out <= x >>> y[4:0];
         end
 
       3'b110:               //  OR
-        out <= x || y;
+        out <= x | y;
 
       3'b111:               //  AND
-        out <= x && y;
+        out <= x & y;
 
     endcase
   end
