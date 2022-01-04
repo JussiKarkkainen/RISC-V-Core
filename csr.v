@@ -1,6 +1,6 @@
 module csr (
-  input i_clk,
-  input i_rst,
+  input clk,
+  input rst,
   input [31:0] i_data,
   input [3:0] funct3, 
   input [11:0] csr_addr,
@@ -51,7 +51,7 @@ reg [31.0] sscratch;
 
 
 // All CSR-instructions have read
-always @ *
+always @(posedge clk)
   begin
     if (csr_re)
       begin
@@ -87,11 +87,9 @@ always @ *
 
         endcase
       end
-  end
 
 // Write to CSR-register
-always @(posedge i_clk)
-  begin
+    
     if (csr_we && (funct3 == 3'b001 || funct3 == 3'b101))    // CSRRW/CSRRWI
       begin
         case (csr_addr)  
