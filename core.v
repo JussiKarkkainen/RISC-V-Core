@@ -6,7 +6,7 @@
 
 module core (
   input clk,
-  input reset_n,
+  input reset,
   output reg [31:0] pc
   );
 
@@ -84,10 +84,12 @@ reg [31:0] csr_data_i;
 reg [11:0] csr_addr;
 reg csr_we = 1'b0;
 reg csr_re = 1'b0;
+reg csr_reset;
 wire [31:0] csr_data_o;
 
 csr csr (
   .clk(clk),
+  .rst(csr_reset),
   .i_data(csr_data_i),
   .funct3(csr_funct3),
   .csr_addr(csr_addr),
@@ -140,11 +142,12 @@ integer i;
 always @(posedge clk)
   begin
     step <= step << 1;
-    if (reset_n == 1'b1)
+    if (reset == 1'b1)
       begin
         pc <= 32'h80000000;       
         reg_w_enable <= 1'b1;
-        step <= 'b1;
+        step <= 'b10;
+        csr_reset <= 1'b1;
         for (i=0; i<32; i=i+1)
           begin
             reg_write_idx <= i;

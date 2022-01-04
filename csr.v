@@ -53,6 +53,27 @@ reg [31.0] sscratch;
 // All CSR-instructions have read
 always @(posedge clk)
   begin
+    if (rst == 1'b1);
+      begin
+        mtvec <= 0;
+        medeleg <= 0;
+        mideleg <= 0;
+        mip <= 0;
+        mie <= 0;
+        mtime <= 0;
+        mtimecmp <= 0;
+        mepc <= 0;
+        mcause <= 0;
+        mtval <= 0;
+        mcycle <= 0;
+        sepc <= 0;
+        stvec <= 0;
+        scause <= 0;
+        stval <= 0;
+        satp <= 0;
+        sscratch <= 0;
+      end
+
     if (csr_re)
       begin
         case (csr_addr)   // Read correct register

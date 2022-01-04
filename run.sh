@@ -1,4 +1,3 @@
 #!/bin/bash
 
-
-iverilog -g2012 testbench.sv && ./a.out
+iverilog -Wall -g2012 -o out core_tb.sv && vvp out
