@@ -55,7 +55,7 @@ conditionals cond (
   .x(cond_x),
   .y(cond_y),
   .funct3(cond_funct3),
-  .out(cond_out)
+  .out(cond_pc)         // output determines if pc is alu_out or pc + 4
   );
 
 
@@ -117,7 +117,7 @@ wire [4:0] rd = ram_i_data[11:7];
 wire [31:0] csr_imm_rs1 = {27'b0, ram_i_data[19:5]};
 
 
-reg new_pc = 1'b0;  // Set to 1 if pc is updated to new address in jump or branch
+reg new_pc = 1'b0;  // Set to 1 if pc is updated to new address in jump, branch uses cond_pc
 reg store = 1'b0;   // if 1, store value in to memory later
 reg reg_writeback = 1'b0;
 reg [31:0] spc;
@@ -142,12 +142,12 @@ always @(posedge clk)
       end
     ram_i_addr <= pc[13:0];
     spc <= pc;
-    cond_x <= rs1;
-    cond_y <= rs2;
     cond_funct3 <= funct3;
     alu_funct3 <= funct3;
     reg_read_a <= rs1;
     reg_read_b <= rs2;
+    cond_x <= reg_a;    // rs1 
+    cond_y <= reg_a;    // rs2
 // Execute
 
     case (opcode)
@@ -186,7 +186,6 @@ always @(posedge clk)
         begin
           alu_x <= imm_b;
           alu_y <= pc;
-          new_pc <= 1'b1;
           reg_writeback <= 1'b1;
         end
 
@@ -252,7 +251,7 @@ always @(posedge clk)
     end
 
   // Register writeback
-  // Update pc    
+  
     if (step[6] == 1'b1) begin
       if (reg_writeback == 1'b1 && rd != 5'b00000)
         begin
@@ -282,7 +281,11 @@ always @(posedge clk)
           else
             reg_data <= alu_out;  
         end
-      pc <= (new_pc ? alu_out : (spc + 4));
+      if (cond_pc == 1'b1 || new_pc == 1'b1)
+        pc <= alu_out;
+      else
+        pc <= spc + 4;
+
       step <= 'b1;
     end
 
