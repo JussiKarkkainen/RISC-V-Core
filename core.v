@@ -121,18 +121,18 @@ reg new_pc = 1'b0;  // Set to 1 if pc is updated to new address in jump, branch 
 reg store = 1'b0;   // if 1, store value in to memory later
 reg reg_writeback = 1'b0;
 reg [31:0] spc;
-reg [6:0] step;
+reg [6:0] ctr;
 
 
 integer i;
 always @(posedge clk)
   begin
-    step <= step << 1;
+    ctr <= ctr << 1;
     if (reset == 1'b1)
       begin
         pc <= 32'h80000000;       
         reg_w_enable <= 1'b1;
-        step <= 'b10;
+        ctr <= 'b10;
         csr_reset <= 1'b1;
         for (i=0; i<32; i=i+1)
           begin
@@ -154,7 +154,7 @@ always @(posedge clk)
                   
       7'b0110111:                 // LUI 
         begin   
-          alu_x <= imm_u;
+          alu_x <= imm_u;         // TO DO: Fix LUI
           alu_y <= 32'b0;
           reg_writeback <= 1'b1;
         end
@@ -238,7 +238,7 @@ always @(posedge clk)
     endcase
 
 // Memory Access
-    if (step[5] == 1'b1) begin
+    if (ctr[5] == 1'b1) begin
       //if (load == 1'b1)
       ram_w_enable <= 1'b1;
       ram_d_addr <= alu_out[13:0];
@@ -252,7 +252,7 @@ always @(posedge clk)
 
   // Register writeback
   
-    if (step[6] == 1'b1) begin
+    if (ctr[6] == 1'b1) begin
       if (reg_writeback == 1'b1 && rd != 5'b00000)
         begin
           reg_w_enable <= 1'b1;
@@ -286,7 +286,7 @@ always @(posedge clk)
       else
         pc <= spc + 4;
 
-      step <= 'b1;
+      ctr <= 'b1;
     end
 
 
