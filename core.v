@@ -32,16 +32,16 @@ regfile regfile (
 
 
 reg [2:0] alu_funct3;
-reg [6:0] alu_funct7;
 reg [31:0] alu_x;
 reg [31:0] alu_y;
+reg alu_imm = 1'b0;
 wire [31:0] alu_out;
 
 alu alu (
   .x(alu_x),
   .y(alu_y),
   .funct3(alu_funct3),
-  .funct7(alu_funct7),
+  .imm(alu_imm),
   .out(alu_out)
   );
 
@@ -100,7 +100,6 @@ csr csr (
 
 
 // Instruction decode
-/*
 wire [6:0] opcode = ram_i_data[6:0];
 wire [2:0] funct3 = ram_i_data[14:12];
 wire [6:0] funct7 = ram_i_data[31:25];
@@ -108,22 +107,9 @@ wire [4:0] rs1 = ram_i_data[19:15];
 wire [4:0] rs2 = ram_i_data[24:20];
 wire [31:0] imm_i = {{20{ram_i_data[31]}}, ram_i_data[31], ram_i_data[30:25], ram_i_data[24:21], ram_i_data[20]};
 wire [31:0] imm_s = {{20{ram_i_data[31]}}, ram_i_data[31], ram_i_data[30:25], ram_i_data[11:8], ram_i_data[7]};
-wire [31:0] imm_b = {{20{ram_i_data[31]}}, ram_i_data[31], ram_i_data[7], ram_i_data[30:25], ram_i_data[11:8], 1'b0};
-wire [31:0] imm_u = {{12{ram_i_data[31]}}, ram_i_data[31], ram_i_data[30:20], ram_i_data[19:12], 12'b0};
-wire [31:0] imm_j = {{12{ram_i_data[31]}}, ram_i_data[31], ram_i_data[19:12], ram_i_data[20], ram_i_data[30:25], ram_i_data[24:21], 1'b0};
-*/
-
-
-wire [6:0] opcode = ram_i_data[6:0];
-wire [2:0] funct3 = ram_i_data[14:12];
-wire [6:0] funct7 = ram_i_data[31:25];
-wire [4:0] rs1 = ram_i_data[19:15];
-wire [4:0] rs2 = ram_i_data[24:20];
-wire [31:0] imm_i = {{20{ram_i_data[31]}}, ram_i_data[31:20]};
-wire [31:0] imm_s = {{20{ram_i_data[31]}}, ram_i_data[31:25], ram_i_data[11:7]};
 wire [31:0] imm_b = {{19{ram_i_data[31]}}, ram_i_data[31], ram_i_data[7], ram_i_data[30:25], ram_i_data[11:8], 1'b0};
-wire [31:0] imm_u = {ram_i_data[31:12], 12'b0};
-wire [31:0] imm_j = {{11{ram_i_data[31]}}, ram_i_data[31], ram_i_data[19:12], ram_i_data[20], ram_i_data[30:21], 1'b0};
+wire [31:0] imm_u = {{12{ram_i_data[31]}}, ram_i_data[31], ram_i_data[30:20], ram_i_data[19:12], 12'b0};
+wire [31:0] imm_j = {{11{ram_i_data[31]}}, ram_i_data[31], ram_i_data[19:12], ram_i_data[20], ram_i_data[30:25], ram_i_data[24:21], 1'b0};
 
 
 wire [6:0] csr_address = ram_i_data[31:20];
@@ -160,7 +146,6 @@ always @(posedge clk)
     cond_y <= rs2;
     cond_funct3 <= funct3;
     alu_funct3 <= funct3;
-    alu_funct7 <= funct7;
     reg_read_a <= rs1;
     reg_read_b <= rs2;
 // Execute
@@ -223,6 +208,7 @@ always @(posedge clk)
         begin
           alu_x <= imm_i;
           alu_y <= reg_a;
+          alu_imm <= 1'b1;
           reg_writeback <= 1'b1;
         end
       
