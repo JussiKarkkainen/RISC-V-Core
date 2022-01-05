@@ -1,12 +1,13 @@
 // Used to handle conditions in branch instructions 
 module conditionals (
+  input clk,
   input [31:0] x,
   input [31:0] y,
   input [2:0] funct3,
   output reg out
   );
 
-always @ (*)
+always @(posedge clk)
   begin
     case (funct3)
       
