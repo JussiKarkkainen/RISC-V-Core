@@ -10,27 +10,6 @@ module core (
   output reg [31:0] pc
   );
 
-/*
-reg [4:0] reg_read_a;
-reg [4:0] reg_read_b;
-reg [4:0] reg_write_idx;
-reg [31:0] reg_data;
-reg reg_w_enable = 1'b0;
-wire [31:0] reg_a;
-wire [31:0] reg_b;
-
-regfile regfile (
-  .clk(clk),
-  .read_a(reg_read_a),
-  .read_b(reg_read_b),
-  .write_idx(reg_write_idx),
-  .data(reg_data),
-  .write_enable(reg_w_enable),
-  .a(reg_a),
-  .b(reg_b)
-  );
-
-*/
 reg [2:0] alu_funct3;
 reg [6:0] alu_funct7;
 reg [31:0] alu_x;
@@ -63,11 +42,11 @@ conditionals cond (
   );
 
 
-reg [13:0] ram_i_addr;
+reg [31:0] ram_i_addr;  
 reg [31:0] ram_d_in;
 reg ram_w_enable;
 reg [2:0] ram_d_size;
-reg [13:0] ram_d_addr;
+reg [31:0] ram_d_addr; 
 wire [31:0] ram_d_out;
 wire [31:0] ram_i_data;
 
@@ -129,9 +108,7 @@ reg [6:0] ctr;
 reg [31:0] regs[0:31];
 reg [31:0] vs1;
 reg [31:0] vs2;
-reg [2:0] cycle_funct3;
 reg [4:0] rd;
-
 
 integer i;
 always @(posedge clk)
@@ -140,33 +117,25 @@ always @(posedge clk)
     if (reset == 1'b1)
       begin
         pc <= 32'h80000000;       
-        //reg_w_enable <= 1'b1;
         ctr <= 'b10;
         csr_reset <= 1'b1;
         for (i=0; i<32; i=i+1)
           begin
             regs[i] <= 0;
-            //reg_write_idx <= i;
-            //reg_data <= 32'b0;
           end
       end
     new_pc <= 1'b0;
     store <= 1'b0;
     reg_writeback <= 1'b0;
-    //reg_read_a <= rs1;
-    //reg_read_b <= rs2;
-    ram_i_addr <= pc[13:0];
+    ram_i_addr <= pc;
     spc <= pc;
     cond_funct3 <= funct3;
     alu_funct3 <= funct3;
     alu_funct7 <= funct7;
-    alu_imm <= 1'b0;
-    //cond_x <= reg_a;    // rs1 
-    //cond_y <= reg_a;    // rs2
-    vs1 = regs[rs1];
-    vs2 <= regs[rs2];
-    cycle_funct3 <= funct3;
+    alu_imm <= 2'b0;
     rd <= ram_i_data[11:7];
+    cond_x <= regs[rs1];
+    cond_y <= regs[rs2];
 // Execute
 
     case (opcode)
@@ -200,11 +169,13 @@ always @(posedge clk)
           new_pc <= 1'b1;
           reg_writeback <= 1'b1;
         end
-      7'b1100011:                 // BRANCH
 
+      7'b1100011:                 // BRANCH
         begin
+          alu_funct3 <= 3'b000;
           alu_x <= imm_b;
           alu_y <= pc;
+          alu_imm <= 1'b1;
           reg_writeback <= 1'b1;
         end
 
@@ -258,10 +229,6 @@ always @(posedge clk)
 
 // Memory Access
     if (ctr[5] == 1'b1) begin
-      //if (load == 1'b1)
-      ram_w_enable <= 1'b1;
-      ram_d_addr <= alu_out[13:0];
-      
       if (store == 1'b1)
         begin
           ram_d_in <= regs[rs2];
@@ -274,11 +241,11 @@ always @(posedge clk)
     if (ctr[6] == 1'b1) begin
       if (reg_writeback == 1'b1 && rd != 5'b0)
         begin
-          //reg_w_enable <= 1'b1;
-          //reg_write_idx <= rd;
           if (opcode == 7'b0000011) 
             begin
-              case (cycle_funct3)   //use reg_data instead of regs[rd]
+              ram_w_enable <= 1'b1;
+              ram_d_addr <= alu_out[13:0];
+              case (funct3)   
                 000:
                   regs[rd] <= {{24{ram_d_out[7]}}, ram_d_out[7:0]}; // Load sign extended 8 bits 
                 
@@ -300,7 +267,8 @@ always @(posedge clk)
           else
             regs[rd] <= alu_out;  
         end
-      if (cond_pc == 1'b1 || new_pc == 1'b1)
+
+      if ((opcode == 7'b1100011 && cond_pc == 1'b1) || new_pc == 1'b1)
         pc <= alu_out;
       else
         pc <= spc + 4;
