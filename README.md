@@ -1,1 +1,3 @@
-Implementation of the RV32I Instruction set. Hopefully running on hardware soon.
+## RISC-V-Core
+
+A toy verilog implementation of the RV32I instruction set.
